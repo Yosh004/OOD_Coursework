@@ -18,5 +18,30 @@ public class Participant {
         this.preferredRole=preferredRole;
 
     }
+    //getters for other classes to read this data
+    public String getStudentID() {
+        return studentID;
+    }
+    public String getName() {
+        return name;
+    }
+    public int getPersonalityScore() {
+        return personalityScore;
+    }
+    public String getPersonalityType() {
+        return personalityType;
+    }
+    public String getPreferredGame() {
+        return preferredGame;
+    }
+    public String getPreferredRole() {
+        return preferredRole;
+    }
+
+    //replace the meaningless output into a human-readable format better in debugging
+    @Override
+    public String toString() {
+        return "Participant [studentID=" + studentID + ", name=" + name + ", personalityScore="+personalityScore + ", personalityType="+personalityType + ", preferredGame="+preferredGame + ", preferredRole="+preferredRole + "]";
+    }
 
 }

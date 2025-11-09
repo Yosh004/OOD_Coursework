@@ -13,7 +13,8 @@ public class Participant {
         this.studentID=studentID;
         this.name=name;
         this.personalityScore=personalityScore;
-        this.personalityType=personalityType;
+        //automatically set the personality based on the score and the algorithm provided by this code
+        this.personalityType=ClassificationService.classifyPersonality(personalityScore);
         this.preferredGame=preferredGame;
         this.preferredRole=preferredRole;
 

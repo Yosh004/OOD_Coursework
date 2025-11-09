@@ -27,7 +27,7 @@ public class Team {
         return members.size();
     }
 
-
+//helper method to check team already has a specific role
     public boolean hasRole(String role) {
         for (Participant member : members) {
             if (member.getPreferredRole().equalsIgnoreCase(role)) {

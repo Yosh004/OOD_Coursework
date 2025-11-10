@@ -19,6 +19,10 @@ public class Participant {
         this.preferredRole=preferredRole;
 
     }
+
+    public Participant(String studentID, String name, int score, String game, String role) {
+    }
+
     //getters for other classes to read this data
     public String getStudentID() {
         return studentID;

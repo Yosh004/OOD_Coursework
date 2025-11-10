@@ -1,8 +1,6 @@
 package com.teamMate;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,5 +47,36 @@ public class fileService {
         return participants;
     }
 
+    public void writeTeams(List<Team> teams, String filePath) {
+        // Using try-with-resources to automatically close the writer
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
+
+            // Write the header row
+            bw.write("TeamID,StudentID,Name,PersonalityType,PreferredRole,PreferredGame");
+            bw.newLine();
+
+            // Write data for each member of each team
+            for (Team team : teams) {
+                for (Participant member : team.getMembers()) {
+                    String line = String.join(",",
+                            String.valueOf(team.getTeamID()),
+                            member.getStudentID(),
+                            member.getName(),
+                            member.getPersonalityType(),
+                            member.getPreferredRole(),
+                            member.getPreferredGame()
+                    );
+                    bw.write(line);
+                    bw.newLine();
+                }
+            }
+        } catch (IOException e) {
+            // Handle file write errors
+            System.err.println("Error writing the file: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }
+
+
 

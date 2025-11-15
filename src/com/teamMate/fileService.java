@@ -1,82 +1,110 @@
 package com.teamMate;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class fileService {
-    public List<Participant> readParticipants(String filePath) {
+
+    public List<Participant> loadParticipantsFromCSV(String filename) {
         List<Participant> participants = new ArrayList<>();
-        // Using try-with-resources to automatically close the reader
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
 
-            // Skip the header row
-            br.readLine();
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(filename))) {
+            String line = br.readLine(); // Skip header
 
-            // Read every other line
             while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-
-                if (values.length >= 5) {
-                    try {
-                        // Assumes CSV structure: StudentID,Name,PersonalityScore,PreferredGame,PreferredRole
-                        String studentID = values[0].trim();
-                        String name = values[1].trim();
-                        int score = Integer.parseInt(values[2].trim());
-                        String game = values[3].trim();
-                        String role = values[4].trim();
-
-                        // Create and add the new participant
-                        participants.add(new Participant(studentID, name, score, game, role));
-
-                    } catch (NumberFormatException e) {
-                        // Handle invalid number for score
-                        System.err.println("Skipping invalid line (bad score): " + line);
-                    } catch (Exception e) {
-                        // Handle any other unexpected error on a line
-                        System.err.println("Skipping malformed line: " + line);
+                try {
+                    Participant participant = parseParticipant(line);
+                    if (participant != null) {
+                        participants.add(participant);
                     }
+                } catch (Exception e) {
+                    System.err.println("Error parsing line: " + line + " - " + e.getMessage());
                 }
             }
+
         } catch (IOException e) {
-            // Handle file not found or read errors
-            System.err.println("Error reading the file: " + e.getMessage());
-            e.printStackTrace();
+            throw new RuntimeException("Error reading CSV file: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected error: " + e.getMessage(), e);
         }
+
         return participants;
     }
 
-    public void writeTeams(List<Team> teams, String filePath) {
-        // Using try-with-resources to automatically close the writer
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
+    private Participant parseParticipant(String line) {
+        try {
+            String[] fields = line.split(",");
+            if (fields.length < 8) {
+                throw new IllegalArgumentException("Invalid CSV format: " + line);
+            }
 
-            // Write the header row
-            bw.write("TeamID,StudentID,Name,PersonalityType,PreferredRole,PreferredGame");
-            bw.newLine();
+            String id = fields[0].trim();
+            String name = fields[1].trim();
+            String email = fields[2].trim();
+            String preferredGame = fields[3].trim();
+            int skillLevel = Integer.parseInt(fields[4].trim());
+            String preferredRole = fields[5].trim();
+            int personalityScore = Integer.parseInt(fields[6].trim());
+            String personalityType = fields[7].trim();
 
-            // Write data for each member of each team
+            // Validate data
+            validateParticipantData(id, name, email, skillLevel, personalityScore);
+
+            return new Participant(id, name, email, preferredGame, skillLevel,
+                    preferredRole, personalityScore, personalityType);
+
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid number format in line: " + line, e);
+        }
+    }
+
+    private void validateParticipantData(String id, String name, String email,
+                                         int skillLevel, int personalityScore) {
+        if (id == null || id.isEmpty()) {
+            throw new IllegalArgumentException("Participant ID cannot be empty");
+        }
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Participant name cannot be empty");
+        }
+        if (email == null || !email.contains("@")) {
+            throw new IllegalArgumentException("Invalid email format: " + email);
+        }
+        if (skillLevel < 1 || skillLevel > 10) {
+            throw new IllegalArgumentException("Skill level must be between 1-10: " + skillLevel);
+        }
+        if (personalityScore < 0 || personalityScore > 100) {
+            throw new IllegalArgumentException("Personality score must be between 0-100: " + personalityScore);
+        }
+    }
+
+    public void saveTeamsToCSV(List<Team> teams, String filename) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(filename))) {
+            // Write header
+            writer.write("TeamID,ParticipantID,Name,Email,PreferredGame,SkillLevel,PreferredRole,PersonalityScore,PersonalityType");
+            writer.newLine();
+
+            // Write team data
             for (Team team : teams) {
                 for (Participant member : team.getMembers()) {
-                    String line = String.join(",",
-                            String.valueOf(team.getTeamID()),
-                            member.getStudentID(),
+                    String line = String.format("%d,%s,%s,%s,%s,%d,%s,%d,%s",
+                            team.getTeamId(),
+                            member.getId(),
                             member.getName(),
-                            member.getPersonalityType(),
+                            member.getEmail(),
+                            member.getPreferredGame(),
+                            member.getSkillLevel(),
                             member.getPreferredRole(),
-                            member.getPreferredGame()
-                    );
-                    bw.write(line);
-                    bw.newLine();
+                            member.getPersonalityScore(),
+                            member.getPersonalityType());
+                    writer.write(line);
+                    writer.newLine();
                 }
             }
+
         } catch (IOException e) {
-            // Handle file write errors
-            System.err.println("Error writing the file: " + e.getMessage());
-            e.printStackTrace();
+            throw new RuntimeException("Error writing to CSV file: " + e.getMessage(), e);
         }
     }
 }
-
-
-

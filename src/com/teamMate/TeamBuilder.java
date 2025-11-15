@@ -1,125 +1,108 @@
 package com.teamMate;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.Iterator;
 
-// This class orchestrates building the teams.
 public class TeamBuilder {
+    private static final int MAX_SAME_GAME = 2;
+    private static final int MIN_DIFFERENT_ROLES = 3;
 
-    // These roles are required for a balanced team
-    private static final String REQUIRED_ROLE_1 = "Defender";
-    private static final String REQUIRED_ROLE_2 = "Strategist";
+    public List<Team> formBalancedTeams(List<Participant> participants, int teamSize) {
+        List<Team> teams = new ArrayList<>();
 
-    public List<Team> buildTeams(List<Participant> participants, int teamSize) {
-
-        // 1. Create a thread-safe list for participants
-        // This is crucial so multiple threads can safely remove items.
-        List<Participant> availableParticipants = Collections.synchronizedList(new ArrayList<>(participants));
-
-        // 2. Determine how many teams to build and set up the thread pool
-        int numTeams = participants.size() / teamSize;
-        // Using a fixed thread pool to run tasks in parallel
-        ExecutorService executor = Executors.newFixedThreadPool(numTeams);
-
-        // 3. Create a list to hold the "future" results of each task
-        List<Future<Team>> futures = new ArrayList<>();
-
-        // 4. Create and submit one task for each team we need to build
+        // Create teams
+        int numTeams = (int) Math.ceil((double) participants.size() / teamSize);
         for (int i = 0; i < numTeams; i++) {
-            // A "Callable" is a task that returns a value (our Team)
-            Callable<Team> task = () -> {
-                Team team = new Team();
-
-                // --- This is the Matching Algorithm ---
-
-                // Try to fill the team to the desired size
-                for (int j = 0; j < teamSize; j++) {
-                    Participant p = findBestParticipantForTeam(team, availableParticipants);
-                    if (p != null) {
-                        team.addMember(p);
-                    } else {
-                        // Not enough participants left to fill the team
-                        break;
-                    }
-                }
-                return team;
-            };
-            // Submit the task to the pool
-            futures.add(executor.submit(task));
+            teams.add(new Team(i + 1));
         }
 
-        // 5. Collect the results
-        List<Team> formedTeams = new ArrayList<>();
-        try {
-            for (Future<Team> future : futures) {
-                // future.get() waits for the task to complete and gets its result
-                formedTeams.add(future.get());
+        // Sort participants by skill level (descending) for better distribution
+        List<Participant> sortedParticipants = new ArrayList<>(participants);
+        sortedParticipants.sort((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()));
+
+        // Use ExecutorService for concurrent team formation
+        ExecutorService executor = Executors.newFixedThreadPool(teams.size());
+        List<Future<Boolean>> futures = new ArrayList<>();
+
+        // Distribute participants to teams with balancing logic
+        int teamIndex = 0;
+        for (Participant participant : sortedParticipants) {
+            final Participant p = participant;
+            final int currentTeamIndex = teamIndex;
+
+            Future<Boolean> future = executor.submit(() -> {
+                Team team = teams.get(currentTeamIndex);
+                return addParticipantToTeam(p, team);
+            });
+
+            futures.add(future);
+            teamIndex = (teamIndex + 1) % teams.size();
+        }
+
+        // Wait for all tasks to complete
+        for (Future<Boolean> future : futures) {
+            try {
+                future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                System.err.println("Error in team formation: " + e.getMessage());
             }
-        } catch (InterruptedException | ExecutionException e) {
-            System.err.println("Error during team building: " + e.getMessage());
-            e.printStackTrace();
         }
 
-        // 6. Shut down the thread pool
         executor.shutdown();
 
-        // 7. Return the completed teams
-        return formedTeams;
+        return teams;
     }
 
-    /**
-     * The core matching algorithm. Finds the "best" participant for a team.
-     * This method MUST be thread-safe.
-     * @param team The team we are currently building.
-     * @param availableParticipants The master list of available participants.
-     * @return The best participant found, or null if none.
-     */
-    private Participant findBestParticipantForTeam(Team team, List<Participant> availableParticipants) {
-        Participant selected = null;
-
-        // --- Synchronization is CRITICAL ---
-        // We lock the list so only one thread can search and remove at a time.
-        // This prevents two threads from grabbing the same participant.
-        synchronized (availableParticipants) {
-            // Use an Iterator to safely remove items while looping
-            Iterator<Participant> iterator = availableParticipants.iterator();
-
-            // --- Strategy 1: Find required roles first ---
-            if (!team.hasRole(REQUIRED_ROLE_1)) {
-                selected = findAndRemove(iterator, REQUIRED_ROLE_1);
-            }
-            if (selected == null && !team.hasRole(REQUIRED_ROLE_2)) {
-                selected = findAndRemove(iterator, REQUIRED_ROLE_2);
-            }
-
-            // --- Strategy 2: If roles are filled, just grab the next available person ---
-            if (selected == null && iterator.hasNext()) {
-                selected = iterator.next();
-                iterator.remove();
-            }
-
-            // Note: A more complex algorithm could also check for
-            // "diverse interests" or "mixed personalities" here.
-            // This is a simple, effective starting point.
+    private boolean addParticipantToTeam(Participant participant, Team team) {
+        // Check if team can accept this participant based on balancing rules
+        if (isTeamBalancedWithNewMember(participant, team)) {
+            return team.addMember(participant);
         }
-        return selected;
+        return false;
     }
 
-    /**
-     * Helper method to find a participant with a specific role
-     * and remove them from the list.
-     */
-    private Participant findAndRemove(Iterator<Participant> iterator, String role) {
-        while (iterator.hasNext()) {
-            Participant p = iterator.next();
-            if (p.getPreferredRole().equalsIgnoreCase(role)) {
-                iterator.remove(); // Safely remove from the list
-                return p;
-            }
+    private boolean isTeamBalancedWithNewMember(Participant participant, Team team) {
+        // Check game diversity
+        long sameGameCount = team.getMembers().stream()
+                .filter(m -> m.getPreferredGame().equals(participant.getPreferredGame()))
+                .count();
+        if (sameGameCount >= MAX_SAME_GAME) {
+            return false;
         }
-        return null; // No participant with that role was found
+
+        // Check if adding this member maintains role diversity
+        Set<String> potentialRoles = new HashSet<>(team.getUniqueRoles());
+        potentialRoles.add(participant.getPreferredRole());
+        if (potentialRoles.size() < Math.min(MIN_DIFFERENT_ROLES, team.getSize() + 1)) {
+            return false;
+        }
+
+        // Check personality balance
+        return isPersonalityBalanceMaintained(participant, team);
+    }
+
+    private boolean isPersonalityBalanceMaintained(Participant participant, Team team) {
+        String newPersonality = participant.getPersonalityType();
+        Map<String, Long> personalityCounts = new HashMap<>();
+
+        // Count current personalities
+        for (Participant member : team.getMembers()) {
+            String personality = member.getPersonalityType();
+            personalityCounts.put(personality, personalityCounts.getOrDefault(personality, 0L) + 1);
+        }
+
+        // Add new personality
+        personalityCounts.put(newPersonality, personalityCounts.getOrDefault(newPersonality, 0L) + 1);
+
+        // Check balance rules
+        long leaders = personalityCounts.getOrDefault("Leader", 0L);
+        long thinkers = personalityCounts.getOrDefault("Thinker", 0L);
+        long balanced = personalityCounts.getOrDefault("Balanced", 0L);
+
+        // Ideal: 1 Leader, 1-2 Thinkers, rest Balanced
+        if (leaders > 1) return false;
+        if (thinkers > 2) return false;
+
+        return true;
     }
 }

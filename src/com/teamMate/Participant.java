@@ -1,52 +1,55 @@
 package com.teamMate;
 
 public class Participant {
-    private String studentID;
+    private String id;
     private String name;
-    private int personalityScore;
-    private String personalityType; //leader etc.
+    private String email;
     private String preferredGame;
-    private String preferredRole; //defender etc.
+    private int skillLevel;
+    private String preferredRole;
+    private int personalityScore;
+    private String personalityType;
 
-    //create new participant constructor
-    public Participant(String studentID,String name,int personalityScore,String personalityType,String preferredGame,String preferredRole) {
-        this.studentID=studentID;
-        this.name=name;
-        this.personalityScore=personalityScore;
-        //automatically set the personality based on the score and the algorithm provided by this code
-        this.personalityType=ClassificationService.classifyPersonality(personalityScore);
-        this.preferredGame=preferredGame;
-        this.preferredRole=preferredRole;
-
-    }
-
-    public Participant(String studentID, String name, int score, String game, String role) {
-    }
-
-    //getters for other classes to read this data
-    public String getStudentID() {
-        return studentID;
-    }
-    public String getName() {
-        return name;
-    }
-    public int getPersonalityScore() {
-        return personalityScore;
-    }
-    public String getPersonalityType() {
-        return personalityType;
-    }
-    public String getPreferredGame() {
-        return preferredGame;
-    }
-    public String getPreferredRole() {
-        return preferredRole;
+    public Participant(String id, String name, String email, String preferredGame,
+                       int skillLevel, String preferredRole, int personalityScore, String personalityType) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.preferredGame = preferredGame;
+        this.skillLevel = skillLevel;
+        this.preferredRole = preferredRole;
+        this.personalityScore = personalityScore;
+        this.personalityType = personalityType;
     }
 
-    //replace the meaningless output into a human-readable format better in debugging
+    // Getters and Setters
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPreferredGame() { return preferredGame; }
+    public void setPreferredGame(String preferredGame) { this.preferredGame = preferredGame; }
+
+    public int getSkillLevel() { return skillLevel; }
+    public void setSkillLevel(int skillLevel) { this.skillLevel = skillLevel; }
+
+    public String getPreferredRole() { return preferredRole; }
+    public void setPreferredRole(String preferredRole) { this.preferredRole = preferredRole; }
+
+    public int getPersonalityScore() { return personalityScore; }
+    public void setPersonalityScore(int personalityScore) { this.personalityScore = personalityScore; }
+
+    public String getPersonalityType() { return personalityType; }
+    public void setPersonalityType(String personalityType) { this.personalityType = personalityType; }
+
     @Override
     public String toString() {
-        return "Participant [studentID=" + studentID + ", name=" + name + ", personalityScore="+personalityScore + ", personalityType="+personalityType + ", preferredGame="+preferredGame + ", preferredRole="+preferredRole + "]";
+        return String.format("Participant{id='%s', name='%s', game='%s', skill=%d, role='%s', personality='%s'}",
+                id, name, preferredGame, skillLevel, preferredRole, personalityType);
     }
-
 }

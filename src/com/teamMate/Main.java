@@ -2,6 +2,7 @@ package com.teamMate;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Scanner;
 
 public class Main {
     private static List<Participant> participants = new ArrayList<>();
@@ -12,6 +13,18 @@ public class Main {
     private static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("UserName: ");
+        String userName = scanner.nextLine();
+        System.out.println("Password: ");
+        String password = scanner.nextLine();
+        if (userName.equals("yv") && password.equals("IIT")) {
+            System.out.println("Welcome to Team Mate!");
+        }
+        else {
+            System.out.println("Invalid username or password!... Please try again.");
+            System.exit(0);
+        }
         try {
             System.out.println("=== TeamMate: Intelligent Team Formation System ===");
             loadParticipants();

@@ -1,9 +1,7 @@
 package com.teamMate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Team {
     private int teamId;
@@ -12,6 +10,7 @@ public class Team {
     private Set<String> uniqueGames;
     private Set<String> uniqueRoles;
     private Set<String> personalityTypes;
+    private int requiredTeamSize;
 
     public Team(int teamId) {
         this.teamId = teamId;
@@ -19,6 +18,11 @@ public class Team {
         this.uniqueGames = new HashSet<>();
         this.uniqueRoles = new HashSet<>();
         this.personalityTypes = new HashSet<>();
+        this.requiredTeamSize = 0; // Will be set later
+    }
+
+    public void setRequiredTeamSize(int teamSize) {
+        this.requiredTeamSize = teamSize;
     }
 
     public boolean addMember(Participant participant) {
@@ -44,6 +48,33 @@ public class Team {
         averageSkill = total / members.size();
     }
 
+    // BALANCE CHECKING - SIMPLE: Balanced = has exact required team size
+    public boolean isBalancedTeam() {
+        return members.size() == requiredTeamSize;
+    }
+
+    public boolean isFull() {
+        return members.size() >= requiredTeamSize;
+    }
+
+    public boolean hasSpace() {
+        return members.size() < requiredTeamSize;
+    }
+
+    public int getRemainingSpace() {
+        return requiredTeamSize - members.size();
+    }
+
+    public String getBalanceStatus() {
+        if (members.size() == requiredTeamSize) {
+            return "✅ BALANCED (" + members.size() + "/" + requiredTeamSize + " members)";
+        } else if (members.size() > requiredTeamSize) {
+            return "❌ OVERFILLED (" + members.size() + "/" + requiredTeamSize + " members)";
+        } else {
+            return "❌ UNBALANCED (" + members.size() + "/" + requiredTeamSize + " members)";
+        }
+    }
+
     // Getters
     public int getTeamId() { return teamId; }
     public List<Participant> getMembers() { return new ArrayList<>(members); }
@@ -52,31 +83,33 @@ public class Team {
     public Set<String> getUniqueRoles() { return new HashSet<>(uniqueRoles); }
     public Set<String> getPersonalityTypes() { return new HashSet<>(personalityTypes); }
     public int getSize() { return members.size(); }
+    public int getRequiredTeamSize() { return requiredTeamSize; }
 
-    public boolean hasLeader() {
-        return personalityTypes.contains("Leader");
+    // Get detailed personality counts
+    public Map<String, Long> getPersonalityCounts() {
+        return members.stream()
+                .collect(Collectors.groupingBy(Participant::getPersonalityType, Collectors.counting()));
     }
 
-    public boolean hasThinker() {
-        return personalityTypes.contains("Thinker");
-    }
-
-    public boolean hasBalanced() {
-        return personalityTypes.contains("Balanced");
+    // Get detailed game counts
+    public Map<String, Long> getGameCounts() {
+        return members.stream()
+                .collect(Collectors.groupingBy(Participant::getPreferredGame, Collectors.counting()));
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Team %d (Avg Skill: %.2f, Games: %d, Roles: %d, Personalities: %s)\n",
-                teamId, averageSkill, uniqueGames.size(), uniqueRoles.size(), personalityTypes));
+        Map<String, Long> personalityCounts = getPersonalityCounts();
+        Map<String, Long> gameCounts = getGameCounts();
+
+        sb.append(String.format("Team %d - %s\n", teamId, getBalanceStatus()));
+        sb.append(String.format("  Avg Skill: %.2f, Personalities: %s\n", averageSkill, personalityCounts));
+        sb.append(String.format("  Roles: %s, Games: %s\n", uniqueRoles, gameCounts));
 
         for (Participant member : members) {
             sb.append("  - ").append(member.toString()).append("\n");
         }
-
-        sb.append(String.format("  Team Balance: Leader: %s, Thinker: %s, Balanced: %s",
-                hasLeader(), hasThinker(), hasBalanced()));
 
         return sb.toString();
     }

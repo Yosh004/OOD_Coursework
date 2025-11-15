@@ -1,12 +1,10 @@
 package com.teamMate;
 
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class TeamBuilder {
     private static final int MAX_SAME_GAME = 2;
-    private static final int MIN_DIFFERENT_ROLES = 3;
 
     public List<Team> formBalancedTeams(List<Participant> participants, int teamSize) {
         if (participants.isEmpty()) {
@@ -14,148 +12,114 @@ public class TeamBuilder {
         }
 
         List<Team> teams = new ArrayList<>();
+        List<Participant> availableParticipants = new ArrayList<>(participants);
 
-        // Create teams
-        int numTeams = (int) Math.ceil((double) participants.size() / teamSize);
-        for (int i = 0; i < numTeams; i++) {
-            teams.add(new Team(i + 1));
+        // Calculate exact team distribution
+        int totalParticipants = availableParticipants.size();
+        int numFullTeams = totalParticipants / teamSize;      // Full teams
+        int leftoverParticipants = totalParticipants % teamSize; // Leftover participants
+
+        System.out.println("Participants: " + totalParticipants + ", Team Size: " + teamSize);
+        System.out.println("Forming " + numFullTeams + " full teams + " + leftoverParticipants + " leftover participants");
+
+        // Create only the exact number of full teams needed
+        for (int i = 0; i < numFullTeams; i++) {
+            Team team = new Team(i + 1);
+            team.setRequiredTeamSize(teamSize);
+            teams.add(team);
         }
 
-        // Separate by personality type for better distribution
-        List<Participant> leaders = participants.stream()
-                .filter(p -> "Leader".equals(p.getPersonalityType()))
-                .sorted((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()))
-                .collect(Collectors.toList());
+        // Shuffle participants for random distribution
+        Collections.shuffle(availableParticipants);
 
-        List<Participant> thinkers = participants.stream()
-                .filter(p -> "Thinker".equals(p.getPersonalityType()))
-                .sorted((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()))
-                .collect(Collectors.toList());
+        // Distribute participants to fill teams to exact size
+        int participantIndex = 0;
 
-        List<Participant> balanced = participants.stream()
-                .filter(p -> "Balanced".equals(p.getPersonalityType()))
-                .sorted((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()))
-                .collect(Collectors.toList());
+        // Keep distributing until all full teams are exactly filled
+        while (participantIndex < availableParticipants.size()) {
+            boolean placed = false;
 
-        // Phase 1: Distribute one leader to each team
-        distributeByPersonality(teams, leaders, 1, teamSize);
+            // Try to place in teams that still have space
+            for (Team team : teams) {
+                if (team.hasSpace() && participantIndex < availableParticipants.size()) {
+                    Participant participant = availableParticipants.get(participantIndex);
+                    if (team.addMember(participant)) {
+                        participantIndex++;
+                        placed = true;
+                    }
+                }
+            }
 
-        // Phase 2: Distribute thinkers (1-2 per team)
-        distributeByPersonality(teams, thinkers, 2, teamSize);
+            // If we couldn't place anyone in this round, break to avoid infinite loop
+            if (!placed) {
+                break;
+            }
+        }
 
-        // Phase 3: Distribute balanced participants to fill remaining spots
-        distributeByPersonality(teams, balanced, teamSize, teamSize);
+        // Create leftover team if we have leftover participants
+        if (leftoverParticipants > 0) {
+            Team leftoverTeam = new Team(numFullTeams + 1);
+            leftoverTeam.setRequiredTeamSize(teamSize); // Still set required size, but it will show as unbalanced
+
+            // Add remaining participants to leftover team
+            for (int i = participantIndex; i < availableParticipants.size(); i++) {
+                leftoverTeam.addMember(availableParticipants.get(i));
+            }
+
+            teams.add(leftoverTeam);
+            System.out.println("Created leftover team " + leftoverTeam.getTeamId() +
+                    " with " + leftoverTeam.getSize() + " participants (needs " + teamSize + ")");
+        }
+
+        // Print formation summary
+        printFormationSummary(teams, teamSize);
 
         return teams;
     }
 
-    private void distributeByPersonality(List<Team> teams, List<Participant> participants,
-                                         int maxPerTeam, int teamSize) {
-        if (participants.isEmpty()) return;
+    private void printFormationSummary(List<Team> teams, int requiredTeamSize) {
+        System.out.println("\n=== TEAM FORMATION SUMMARY ===");
+        int balancedTeams = 0;
+        int unbalancedTeams = 0;
 
-        int participantIndex = 0;
-        boolean addedParticipant;
-
-        do {
-            addedParticipant = false;
-
-            for (Team team : teams) {
-                if (team.getSize() >= teamSize) continue; // Team is full
-                if (participantIndex >= participants.size()) break; // No more participants
-
-                Participant participant = participants.get(participantIndex);
-
-                // Check if team can accept this personality type
-                if (canAcceptPersonality(participant, team, maxPerTeam) &&
-                        isTeamBalancedWithNewMember(participant, team)) {
-
-                    if (team.addMember(participant)) {
-                        participantIndex++;
-                        addedParticipant = true;
-                    }
-                }
-            }
-
-        } while (addedParticipant && participantIndex < participants.size());
-
-        // If we still have participants and teams with space, try less strict matching
-        if (participantIndex < participants.size()) {
-            for (int i = participantIndex; i < participants.size(); i++) {
-                Participant participant = participants.get(i);
-
-                for (Team team : teams) {
-                    if (team.getSize() >= teamSize) continue;
-
-                    if (canAcceptPersonality(participant, team, maxPerTeam) &&
-                            team.addMember(participant)) {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    private boolean canAcceptPersonality(Participant participant, Team team, int maxPerTeam) {
-        String personality = participant.getPersonalityType();
-        long currentCount = team.getMembers().stream()
-                .filter(p -> personality.equals(p.getPersonalityType()))
-                .count();
-
-        return currentCount < maxPerTeam;
-    }
-
-    private boolean isTeamBalancedWithNewMember(Participant participant, Team team) {
-        // Check game diversity
-        long sameGameCount = team.getMembers().stream()
-                .filter(m -> m.getPreferredGame().equals(participant.getPreferredGame()))
-                .count();
-        if (sameGameCount >= MAX_SAME_GAME) {
-            return false;
-        }
-
-        // Check role diversity (but be flexible for small teams)
-        Set<String> potentialRoles = new HashSet<>(team.getUniqueRoles());
-        potentialRoles.add(participant.getPreferredRole());
-
-        int currentSize = team.getSize();
-        if (currentSize >= MIN_DIFFERENT_ROLES - 1 && potentialRoles.size() < MIN_DIFFERENT_ROLES) {
-            return false;
-        }
-
-        return true;
-    }
-
-    // Method to add a single participant to existing teams (for new player addition)
-    public boolean addParticipantToTeams(Participant newParticipant, List<Team> teams, int teamSize) {
-        if (teams.isEmpty()) return false;
-
-        // Try to find the best team for this participant
         for (Team team : teams) {
-            if (team.getSize() >= teamSize) continue; // Team is full
-
-            if (canAcceptPersonality(newParticipant, team, getMaxForPersonality(newParticipant.getPersonalityType())) &&
-                    isTeamBalancedWithNewMember(newParticipant, team)) {
-
-                return team.addMember(newParticipant);
+            if (team.isBalancedTeam()) {
+                balancedTeams++;
+            } else {
+                unbalancedTeams++;
             }
         }
 
-        // If no ideal team found, try any team with space
+        System.out.println("Balanced teams (exactly " + requiredTeamSize + " members): " + balancedTeams);
+        System.out.println("Unbalanced teams: " + unbalancedTeams);
+
         for (Team team : teams) {
-            if (team.getSize() < teamSize && team.addMember(newParticipant)) {
-                return true;
+            if (!team.isBalancedTeam()) {
+                System.out.println("  - Team " + team.getTeamId() + ": " + team.getSize() + "/" + requiredTeamSize + " members");
             }
         }
-
-        return false;
     }
 
-    private int getMaxForPersonality(String personalityType) {
-        switch (personalityType) {
-            case "Leader": return 1;
-            case "Thinker": return 2;
-            case "Balanced": return Integer.MAX_VALUE;
-            default: return 1;
+    // Method to ensure one leader per team
+    public void enforceOneLeaderPerTeam(List<Team> teams) {
+        for (Team team : teams) {
+            if (team.isBalancedTeam()) {
+                ensureSingleLeader(team);
+            }
+        }
+    }
+
+    private void ensureSingleLeader(Team team) {
+        List<Participant> leaders = team.getMembers().stream()
+                .filter(p -> "Leader".equals(p.getPersonalityType()))
+                .collect(Collectors.toList());
+
+        // If more than one leader, we'd need to swap with another team
+        // For now, just log the situation
+        if (leaders.size() > 1) {
+            System.out.println("Team " + team.getTeamId() + " has " + leaders.size() + " leaders");
+        } else if (leaders.isEmpty()) {
+            System.out.println("Team " + team.getTeamId() + " has no leader");
         }
     }
 }

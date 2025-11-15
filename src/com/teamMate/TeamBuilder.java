@@ -2,12 +2,17 @@ package com.teamMate;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class TeamBuilder {
     private static final int MAX_SAME_GAME = 2;
     private static final int MIN_DIFFERENT_ROLES = 3;
 
     public List<Team> formBalancedTeams(List<Participant> participants, int teamSize) {
+        if (participants.isEmpty()) {
+            return new ArrayList<>();
+        }
+
         List<Team> teams = new ArrayList<>();
 
         // Create teams
@@ -16,49 +21,87 @@ public class TeamBuilder {
             teams.add(new Team(i + 1));
         }
 
-        // Sort participants by skill level (descending) for better distribution
-        List<Participant> sortedParticipants = new ArrayList<>(participants);
-        sortedParticipants.sort((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()));
+        // Separate by personality type for better distribution
+        List<Participant> leaders = participants.stream()
+                .filter(p -> "Leader".equals(p.getPersonalityType()))
+                .sorted((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()))
+                .collect(Collectors.toList());
 
-        // Use ExecutorService for concurrent team formation
-        ExecutorService executor = Executors.newFixedThreadPool(teams.size());
-        List<Future<Boolean>> futures = new ArrayList<>();
+        List<Participant> thinkers = participants.stream()
+                .filter(p -> "Thinker".equals(p.getPersonalityType()))
+                .sorted((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()))
+                .collect(Collectors.toList());
 
-        // Distribute participants to teams with balancing logic
-        int teamIndex = 0;
-        for (Participant participant : sortedParticipants) {
-            final Participant p = participant;
-            final int currentTeamIndex = teamIndex;
+        List<Participant> balanced = participants.stream()
+                .filter(p -> "Balanced".equals(p.getPersonalityType()))
+                .sorted((p1, p2) -> Integer.compare(p2.getSkillLevel(), p1.getSkillLevel()))
+                .collect(Collectors.toList());
 
-            Future<Boolean> future = executor.submit(() -> {
-                Team team = teams.get(currentTeamIndex);
-                return addParticipantToTeam(p, team);
-            });
+        // Phase 1: Distribute one leader to each team
+        distributeByPersonality(teams, leaders, 1, teamSize);
 
-            futures.add(future);
-            teamIndex = (teamIndex + 1) % teams.size();
-        }
+        // Phase 2: Distribute thinkers (1-2 per team)
+        distributeByPersonality(teams, thinkers, 2, teamSize);
 
-        // Wait for all tasks to complete
-        for (Future<Boolean> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException | ExecutionException e) {
-                System.err.println("Error in team formation: " + e.getMessage());
-            }
-        }
-
-        executor.shutdown();
+        // Phase 3: Distribute balanced participants to fill remaining spots
+        distributeByPersonality(teams, balanced, teamSize, teamSize);
 
         return teams;
     }
 
-    private boolean addParticipantToTeam(Participant participant, Team team) {
-        // Check if team can accept this participant based on balancing rules
-        if (isTeamBalancedWithNewMember(participant, team)) {
-            return team.addMember(participant);
+    private void distributeByPersonality(List<Team> teams, List<Participant> participants,
+                                         int maxPerTeam, int teamSize) {
+        if (participants.isEmpty()) return;
+
+        int participantIndex = 0;
+        boolean addedParticipant;
+
+        do {
+            addedParticipant = false;
+
+            for (Team team : teams) {
+                if (team.getSize() >= teamSize) continue; // Team is full
+                if (participantIndex >= participants.size()) break; // No more participants
+
+                Participant participant = participants.get(participantIndex);
+
+                // Check if team can accept this personality type
+                if (canAcceptPersonality(participant, team, maxPerTeam) &&
+                        isTeamBalancedWithNewMember(participant, team)) {
+
+                    if (team.addMember(participant)) {
+                        participantIndex++;
+                        addedParticipant = true;
+                    }
+                }
+            }
+
+        } while (addedParticipant && participantIndex < participants.size());
+
+        // If we still have participants and teams with space, try less strict matching
+        if (participantIndex < participants.size()) {
+            for (int i = participantIndex; i < participants.size(); i++) {
+                Participant participant = participants.get(i);
+
+                for (Team team : teams) {
+                    if (team.getSize() >= teamSize) continue;
+
+                    if (canAcceptPersonality(participant, team, maxPerTeam) &&
+                            team.addMember(participant)) {
+                        break;
+                    }
+                }
+            }
         }
-        return false;
+    }
+
+    private boolean canAcceptPersonality(Participant participant, Team team, int maxPerTeam) {
+        String personality = participant.getPersonalityType();
+        long currentCount = team.getMembers().stream()
+                .filter(p -> personality.equals(p.getPersonalityType()))
+                .count();
+
+        return currentCount < maxPerTeam;
     }
 
     private boolean isTeamBalancedWithNewMember(Participant participant, Team team) {
@@ -70,39 +113,49 @@ public class TeamBuilder {
             return false;
         }
 
-        // Check if adding this member maintains role diversity
+        // Check role diversity (but be flexible for small teams)
         Set<String> potentialRoles = new HashSet<>(team.getUniqueRoles());
         potentialRoles.add(participant.getPreferredRole());
-        if (potentialRoles.size() < Math.min(MIN_DIFFERENT_ROLES, team.getSize() + 1)) {
+
+        int currentSize = team.getSize();
+        if (currentSize >= MIN_DIFFERENT_ROLES - 1 && potentialRoles.size() < MIN_DIFFERENT_ROLES) {
             return false;
         }
 
-        // Check personality balance
-        return isPersonalityBalanceMaintained(participant, team);
+        return true;
     }
 
-    private boolean isPersonalityBalanceMaintained(Participant participant, Team team) {
-        String newPersonality = participant.getPersonalityType();
-        Map<String, Long> personalityCounts = new HashMap<>();
+    // Method to add a single participant to existing teams (for new player addition)
+    public boolean addParticipantToTeams(Participant newParticipant, List<Team> teams, int teamSize) {
+        if (teams.isEmpty()) return false;
 
-        // Count current personalities
-        for (Participant member : team.getMembers()) {
-            String personality = member.getPersonalityType();
-            personalityCounts.put(personality, personalityCounts.getOrDefault(personality, 0L) + 1);
+        // Try to find the best team for this participant
+        for (Team team : teams) {
+            if (team.getSize() >= teamSize) continue; // Team is full
+
+            if (canAcceptPersonality(newParticipant, team, getMaxForPersonality(newParticipant.getPersonalityType())) &&
+                    isTeamBalancedWithNewMember(newParticipant, team)) {
+
+                return team.addMember(newParticipant);
+            }
         }
 
-        // Add new personality
-        personalityCounts.put(newPersonality, personalityCounts.getOrDefault(newPersonality, 0L) + 1);
+        // If no ideal team found, try any team with space
+        for (Team team : teams) {
+            if (team.getSize() < teamSize && team.addMember(newParticipant)) {
+                return true;
+            }
+        }
 
-        // Check balance rules
-        long leaders = personalityCounts.getOrDefault("Leader", 0L);
-        long thinkers = personalityCounts.getOrDefault("Thinker", 0L);
-        long balanced = personalityCounts.getOrDefault("Balanced", 0L);
+        return false;
+    }
 
-        // Ideal: 1 Leader, 1-2 Thinkers, rest Balanced
-        if (leaders > 1) return false;
-        if (thinkers > 2) return false;
-
-        return true;
+    private int getMaxForPersonality(String personalityType) {
+        switch (personalityType) {
+            case "Leader": return 1;
+            case "Thinker": return 2;
+            case "Balanced": return Integer.MAX_VALUE;
+            default: return 1;
+        }
     }
 }

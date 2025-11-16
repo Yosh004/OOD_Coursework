@@ -1,8 +1,8 @@
 package com.teamMate;
 
-import com.teamMate.Interfaces.BalancedTeamStrategy;
-import com.teamMate.Interfaces.RandomTeamStrategy;
-import com.teamMate.Interfaces.TeamFormationStrategy;
+import com.teamMate.Strategies.BalancedTeamStrategy;
+import com.teamMate.Strategies.RandomTeamStrategy;
+import com.teamMate.Strategies.TeamFormationStrategy;
 
 import java.util.*;
 
@@ -16,8 +16,20 @@ public class Main {
     private static TeamFormationStrategy teamStrategy = new BalancedTeamStrategy();
 
     public static void main(String[] args) {
+        System.out.println("=== TeamMate: Intelligent Team Formation System ===");
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Username: ");
+        String username = scanner.nextLine();
+        System.out.println("Password: ");
+        String password = scanner.nextLine();
+        if (username.equals("yv") && password.equals("2004")){
+            System.out.println("...Hello user.....Welcome to Team Mate!");
+        }
+        else {
+            System.out.println("...You don't have the required permissions to do this!");
+            System.exit(0);
+        }
         try {
-            System.out.println("=== TeamMate: Intelligent Team Formation System ===");
             loadParticipants();
 
             boolean running = true;

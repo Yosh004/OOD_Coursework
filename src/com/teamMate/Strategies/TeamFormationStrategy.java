@@ -1,4 +1,4 @@
-package com.teamMate.Interfaces;
+package com.teamMate.Strategies;
 
 import com.teamMate.Participant;
 import com.teamMate.Team;

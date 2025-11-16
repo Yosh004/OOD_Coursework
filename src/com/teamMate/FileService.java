@@ -5,7 +5,7 @@ import java.util.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class fileService {
+public class FileService {
 
     public List<Participant> loadParticipantsFromCSV(String filename) {
         List<Participant> participants = new ArrayList<>();

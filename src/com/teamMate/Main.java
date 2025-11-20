@@ -5,6 +5,7 @@ import com.teamMate.Strategies.RandomTeamStrategy;
 import com.teamMate.Strategies.TeamFormationStrategy;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
     private static List<Participant> participants = new ArrayList<>();
@@ -17,18 +18,6 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println("=== TeamMate: Intelligent Team Formation System ===");
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Username: ");
-        String username = scanner.nextLine();
-        System.out.println("Password: ");
-        String password = scanner.nextLine();
-        if (username.equals("yv") && password.equals("2004")){
-            System.out.println("...Hello user.....Welcome to Team Mate!");
-        }
-        else {
-            System.out.println("...You don't have the required permissions to do this!");
-            System.exit(0);
-        }
         try {
             loadParticipants();
 
@@ -82,9 +71,9 @@ public class Main {
         System.out.println("5. Save Teams to CSV");
         System.out.println("6. Change Formation Strategy");
         System.out.println("7. Exit");
+        System.out.println("Current Strategy: " + (teamStrategy instanceof BalancedTeamStrategy ? "Balanced" : "Random"));
     }
 
-    // Simple strategy selection using polymorphism
     private static void changeStrategy() {
         System.out.println("\n=== SELECT FORMATION STRATEGY ===");
         System.out.println("1. Balanced Strategy (One leader per team)");
@@ -92,7 +81,6 @@ public class Main {
 
         int choice = getIntInput("Choose strategy: ");
 
-        // POLYMORPHISM: Same reference, different objects
         if (choice == 1) {
             teamStrategy = new BalancedTeamStrategy();
             System.out.println("✅ Using Balanced Team Strategy");
@@ -116,7 +104,7 @@ public class Main {
             return;
         }
 
-        // POLYMORPHIC METHOD CALL: Same method call, different behavior
+        // POLYMORPHIC METHOD CALL
         teams = teamStrategy.formTeams(participants, teamSize);
 
         System.out.println("\n=== FORMED TEAMS ===");
@@ -126,7 +114,6 @@ public class Main {
         }
     }
 
-    // ... keep all your existing methods exactly as they were
     private static void loadParticipants() {
         try {
             participants = fileService.loadParticipantsFromCSV("participants_sample.csv");
@@ -138,19 +125,102 @@ public class Main {
     }
 
     private static void addNewPlayer() {
-        // ... your existing addNewPlayer code
+        System.out.println("\n=== ADD NEW PLAYER ===");
+
+        // Generate new ID
+        String newId = "P" + String.format("%03d", participants.size() + 1);
+
+        System.out.print("Enter name: ");
+        String name = scanner.nextLine();
+
+        System.out.print("Enter email: ");
+        String email = scanner.nextLine();
+
+        System.out.println("Available games: Chess, FIFA, Basketball, CS:GO, DOTA 2, Valorant");
+        System.out.print("Enter preferred game: ");
+        String game = scanner.nextLine();
+
+        int skillLevel = getIntInput("Enter skill level (1-10): ");
+        if (skillLevel < 1 || skillLevel > 10) {
+            System.out.println("Skill level must be between 1-10.");
+            return;
+        }
+
+        System.out.println("Available roles: Strategist, Attacker, Defender, Supporter, Coordinator");
+        System.out.print("Enter preferred role: ");
+        String role = scanner.nextLine();
+
+        // Personality survey
+        System.out.println("\n=== PERSONALITY SURVEY ===");
+        System.out.println("Rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree)");
+
+        int q1 = getIntInput("I enjoy taking the lead and guiding others during group activities: ");
+        int q2 = getIntInput("I prefer analyzing situations and coming up with strategic solutions: ");
+        int q3 = getIntInput("I work well with others and enjoy collaborative teamwork: ");
+        int q4 = getIntInput("I am calm under pressure and can help maintain team morale: ");
+        int q5 = getIntInput("I like making quick decisions and adapting in dynamic situations: ");
+
+        try {
+            // Calculate personality score and type
+            int personalityScore = ClassificationService.calculatePersonalityScore(q1, q2, q3, q4, q5);
+            String personalityType = ClassificationService.classifyPersonality(personalityScore);
+
+            // Create new participant
+            Participant newParticipant = new Participant(newId, name, email, game, skillLevel, role, personalityScore, personalityType);
+
+            // Add to participants list
+            participants.add(newParticipant);
+
+            System.out.println("\n✅ New player added successfully!");
+            System.out.println("Player ID: " + newId);
+            System.out.println("Personality Type: " + personalityType);
+            System.out.println("Personality Score: " + personalityScore);
+
+        } catch (Exception e) {
+            System.out.println("Error adding player: " + e.getMessage());
+        }
     }
 
     private static void viewTeams() {
-        // ... your existing viewTeams code
+        if (teams.isEmpty()) {
+            System.out.println("No teams formed yet. Please form teams first.");
+            return;
+        }
+
+        System.out.println("\n=== CURRENT TEAMS ===");
+        for (Team team : teams) {
+            System.out.println(team);
+            System.out.println();
+        }
     }
 
     private static void viewParticipants() {
-        // ... your existing viewParticipants code
+        System.out.println("\n=== ALL PARTICIPANTS ===");
+        System.out.println("Total participants: " + participants.size());
+
+        // Group by personality type for summary
+        Map<String, Long> personalityCounts = participants.stream()
+                .collect(Collectors.groupingBy(Participant::getPersonalityType, Collectors.counting()));
+
+        System.out.println("Personality Distribution: " + personalityCounts);
+
+        for (Participant participant : participants) {
+            System.out.println(participant);
+        }
     }
 
     private static void saveTeams() {
-        // ... your existing saveTeams code
+        if (teams.isEmpty()) {
+            System.out.println("No teams to save. Please form teams first.");
+            return;
+        }
+
+        try {
+            fileService.saveTeamsToCSV(teams, "formed_teams.csv");
+            System.out.println("✅ Teams successfully saved to formed_teams.csv");
+        } catch (Exception e) {
+            System.out.println("Error saving teams: " + e.getMessage());
+        }
     }
 
     private static int getIntInput(String prompt) {
@@ -162,5 +232,5 @@ public class Main {
                 System.out.println("Invalid input. Please enter a number.");
             }
         }
-}
+    }
 }

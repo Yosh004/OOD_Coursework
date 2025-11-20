@@ -2,7 +2,7 @@ package com.teamMate;
 
 public class ClassificationService {
 
-    public String classifyPersonality(int totalScore) {
+    public static String classifyPersonality(int totalScore) {
         if (totalScore >= 90 && totalScore <= 100) {
             return "Leader";
         } else if (totalScore >= 70 && totalScore <= 89) {
@@ -15,7 +15,7 @@ public class ClassificationService {
         }
     }
 
-    public int calculatePersonalityScore(int q1, int q2, int q3, int q4, int q5) {
+    public static int calculatePersonalityScore(int q1, int q2, int q3, int q4, int q5) {
         // Validate input scores
         validateQuestionScore(q1);
         validateQuestionScore(q2);
@@ -27,7 +27,7 @@ public class ClassificationService {
         return total * 4; // Scale to 100
     }
 
-    private void validateQuestionScore(int score) {
+    private static void validateQuestionScore(int score) {
         if (score < 1 || score > 5) {
             throw new IllegalArgumentException("Question score must be between 1-5: " + score);
         }

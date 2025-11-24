@@ -83,10 +83,10 @@ public class Main {
 
         if (choice == 1) {
             teamStrategy = new BalancedTeamStrategy();
-            System.out.println("✅ Using Balanced Team Strategy");
+            System.out.println("------ Using Balanced Team Strategy------");
         } else if (choice == 2) {
             teamStrategy = new RandomTeamStrategy();
-            System.out.println("✅ Using Random Team Strategy");
+            System.out.println("------Using Random Team Strategy--------");
         } else {
             System.out.println("Invalid choice. Keeping current strategy.");
         }
@@ -145,6 +145,27 @@ public class Main {
         System.out.println("6-Valorant");
         System.out.print("Enter the number of the preferred game: ");
         String game = scanner.nextLine();
+        if (game.equals("1")) {
+            game="Chess";
+        }
+        else if (game.equals("2")) {
+            game="FIFA";
+        }
+        else if (game.equals("3")) {
+            game="Basketball";
+        }
+        else if (game.equals("4")) {
+            game="CS:GO";
+        }
+        else if (game.equals("5")) {
+            game="DOTA 2";
+        }
+        else if (game.equals("6")) {
+            game="Valorant";
+        }
+        else{
+            System.out.println("Invalid input enter a value from 1 to 6.");
+        }
 
         int skillLevel = getIntInput("Enter skill level (1-10): ");
         if (skillLevel < 1 || skillLevel > 10) {
@@ -152,9 +173,32 @@ public class Main {
             return;
         }
 
-        System.out.println("Available roles: Strategist, Attacker, Defender, Supporter, Coordinator");
-        System.out.print("Enter preferred role: ");
+        System.out.println("-----Available roles-----");
+        System.out.println("1-Strategist");
+        System.out.println("2-Attacker");
+        System.out.println("3-Defender");
+        System.out.println("4-Supporter");
+        System.out.println("5-Coordinator");
+        System.out.print("Enter the number of the preferred role: ");
         String role = scanner.nextLine();
+        if (role.equals("1")) {
+            role="Strategist";
+        }
+        else if (role.equals("2")) {
+            role="Attacker";
+        }
+        else if (role.equals("3")) {
+            role="Defender";
+        }
+        else if (role.equals("4")) {
+            role="Supporter";
+        }
+        else if (role.equals("5")) {
+            role="Coordinator";
+        }
+        else{
+            System.out.println("Invalid input enter a value from 1 to 6.");
+        }
 
         // Personality survey
         System.out.println("\n=== PERSONALITY SURVEY ===");
@@ -177,8 +221,10 @@ public class Main {
             // Add to participants list
             participants.add(newParticipant);
 
-            System.out.println("\n✅ New player added successfully!");
+            System.out.println("New player added successfully!");
             System.out.println("Player ID: " + newId);
+            System.out.println("Preferred Game: "+game);
+            System.out.println("Preferred Role: "+role);
             System.out.println("Personality Type: " + personalityType);
             System.out.println("Personality Score: " + personalityScore);
 

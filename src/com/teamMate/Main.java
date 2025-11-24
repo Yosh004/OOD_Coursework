@@ -136,8 +136,14 @@ public class Main {
         System.out.print("Enter email: ");
         String email = scanner.nextLine();
 
-        System.out.println("Available games: Chess, FIFA, Basketball, CS:GO, DOTA 2, Valorant");
-        System.out.print("Enter preferred game: ");
+        System.out.println("----------Available games--------");
+        System.out.println("1-Chess");
+        System.out.println("2-FIFA");
+        System.out.println("3-Basketball");
+        System.out.println("4-CS:GO");
+        System.out.println("5-DOTA 2");
+        System.out.println("6-Valorant");
+        System.out.print("Enter the number of the preferred game: ");
         String game = scanner.nextLine();
 
         int skillLevel = getIntInput("Enter skill level (1-10): ");

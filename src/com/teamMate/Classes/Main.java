@@ -1,4 +1,4 @@
-package com.teamMate;
+package com.teamMate.Classes;
 
 import com.teamMate.Strategies.BalancedTeamStrategy;
 import com.teamMate.Strategies.RandomTeamStrategy;

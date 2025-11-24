@@ -1,6 +1,6 @@
 package com.teamMate.Test;
 
-import com.teamMate.ClassificationService;
+import com.teamMate.Classes.ClassificationService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

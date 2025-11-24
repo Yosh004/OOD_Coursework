@@ -1,7 +1,7 @@
 package com.teamMate.Strategies;
 
-import com.teamMate.Participant;
-import com.teamMate.Team;
+import com.teamMate.Classes.Participant;
+import com.teamMate.Classes.Team;
 
 import java.util.*;
 

@@ -1,7 +1,7 @@
 package com.teamMate.Test;
-import com.teamMate.FileService;
-import com.teamMate.Participant;
-import com.teamMate.Team;
+import com.teamMate.Classes.FileService;
+import com.teamMate.Classes.Participant;
+import com.teamMate.Classes.Team;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

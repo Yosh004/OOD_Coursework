@@ -1,4 +1,4 @@
-package com.teamMate;
+package com.teamMate.Classes;
 
 public class Participant {
     private String id;

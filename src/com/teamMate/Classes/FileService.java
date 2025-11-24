@@ -1,4 +1,4 @@
-package com.teamMate;
+package com.teamMate.Classes;
 
 import java.io.*;
 import java.util.*;

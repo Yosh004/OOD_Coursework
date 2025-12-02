@@ -23,7 +23,7 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
         // This list will ONLY hold teams that should receive non-leader members
         List<Team> teamsToFill = new ArrayList<>();
 
-        // 1. Collect and sort leaders
+        // 1. Collect and sort leaders (single-threaded: NO parallel here)
         List<Participant> allLeaders = availableParticipants.stream()
                 .filter(p -> {
                     String type = p.getPersonalityType();
@@ -37,11 +37,12 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
         int totalParticipants = participants.size();
         int numLeaders = allLeaders.size();
 
-        // 2. Calculate required teams based on logic: Total / TeamSize (e.g., 100/5 = 20)
+        // 2. Calculate required teams
         int requiredNumTeams = (int) Math.ceil((double) totalParticipants / teamSize);
 
         // We can only form "valid" main teams up to the number of available leaders
         int mainTeamsToForm = Math.min(requiredNumTeams, numLeaders);
+
         List<Participant> assignedLeaders = new ArrayList<>();
 
         // 3. Create MAIN TEAMS (These will be filled later)
@@ -63,35 +64,35 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
 
         for (Participant leader : unassignedLeaders) {
             Team soloTeam = new Team(allTeams.size() + 1);
-
-            // Set the required size to the STANDARD size (e.g., 5).
-            // Since this team will only have 1 member, it is considered UNBALANCED.
             soloTeam.setRequiredTeamSize(teamSize);
-
             soloTeam.addMember(leader);
-
             allTeams.add(soloTeam);
-            // Do NOT add to 'teamsToFill'. This keeps them as solo-member teams.
+            // Do NOT add to teamsToFill, so they stay solo
         }
 
-        // 5. Phase 1: distribute non-leaders ONLY to 'teamsToFill'
+        // 5. Phase 1: distribute non-leaders ONLY to teamsToFill
         distributeWithConstraints(teamsToFill, availableParticipants, teamSize);
 
-        // 6. Phase 2: fill remaining spots ONLY in 'teamsToFill'
+        // 6. Phase 2: fill remaining spots ONLY in teamsToFill
         fillRemainingSpots(teamsToFill, availableParticipants, teamSize);
 
-        // 7. Return the complete list containing both the filled teams and the solo (unbalanced) teams
+        // Important: all participants in allTeams must be UNIQUE.
+        // Our logic ensures that: each participant is removed from 'availableParticipants'
+        // as soon as they are assigned.
+
         return allTeams;
     }
 
     private void distributeWithConstraints(List<Team> teams, List<Participant> available, int teamSize) {
+        // Randomize order to avoid bias
         Collections.shuffle(available);
 
+        // Iterate over a copy to safely remove from original list while iterating
         for (Participant participant : new ArrayList<>(available)) {
             Team bestTeam = findBestTeamForParticipant(teams, participant, teamSize);
             if (bestTeam != null && bestTeam.hasSpace()) {
                 bestTeam.addMember(participant);
-                available.remove(participant);
+                available.remove(participant); // Remove once assigned ⇒ avoids duplicates
             }
         }
     }
@@ -110,7 +111,6 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
             }
 
             int teamScore = calculateTeamFitScore(team, participant, teamSize);
-
             if (teamScore > bestScore) {
                 bestScore = teamScore;
                 bestTeam = team;
@@ -144,7 +144,6 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
         Set<String> existingRoles = team.getUniqueRoles();
         if (!existingRoles.contains(participant.getPreferredRole())) {
             score += 15;
-
             int minRolesRequired = Math.min(3, teamSize);
             if (existingRoles.size() < minRolesRequired) {
                 score += 10;
@@ -164,7 +163,9 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
             case "Balanced":
                 if (balancedCount < (teamSize - 2)) score += 10;
                 break;
-            // Leaders are fixed earlier
+            default:
+                // Leaders handled earlier
+                break;
         }
 
         // 4. Skill Balance
@@ -181,7 +182,7 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
     }
 
     private void fillRemainingSpots(List<Team> teams, List<Participant> available, int teamSize) {
-        // Stronger skill balancing: assign to team with lowest avg skill
+        // Stronger skill balancing: assign highest skill first to weakest teams
         available.sort(Comparator.comparingInt(Participant::getSkillLevel).reversed());
 
         for (Participant participant : new ArrayList<>(available)) {
@@ -194,7 +195,6 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
 
             for (Team team : teams) {
                 if (team.isFull()) continue;
-
                 double avgSkill = team.getAverageSkill();
                 if (avgSkill < lowestAvgSkill) {
                     lowestAvgSkill = avgSkill;
@@ -204,18 +204,8 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
 
             if (bestTeam != null) {
                 bestTeam.addMember(participant);
-                available.remove(participant);
+                available.remove(participant); // Remove once assigned ⇒ still no duplicates
             }
         }
-    }
-
-    private List<Participant> getUnassignedParticipants(List<Team> teams, List<Participant> allParticipants) {
-        Set<Participant> assigned = teams.stream()
-                .flatMap(team -> team.getMembers().stream())
-                .collect(Collectors.toSet());
-
-        return allParticipants.stream()
-                .filter(p -> !assigned.contains(p))
-                .collect(Collectors.toList());
     }
 }

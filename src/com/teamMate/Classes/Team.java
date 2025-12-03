@@ -48,7 +48,7 @@ public class Team {
         averageSkill = total / members.size();
     }
 
-    // BALANCE CHECKING - SIMPLE: Balanced = has exact required team size
+    //  Balanced = has exact required team size
     public boolean isBalancedTeam() {
         return members.size() == requiredTeamSize;
     }
@@ -67,11 +67,11 @@ public class Team {
 
     public String getBalanceStatus() {
         if (members.size() == requiredTeamSize) {
-            return "✅ BALANCED (" + members.size() + "/" + requiredTeamSize + " members)";
+            return " BALANCED (" + members.size() + "/" + requiredTeamSize + " members)";
         } else if (members.size() > requiredTeamSize) {
-            return "❌ OVERFILLED (" + members.size() + "/" + requiredTeamSize + " members)";
+            return " OVERFILLED (" + members.size() + "/" + requiredTeamSize + " members)";
         } else {
-            return "❌ UNBALANCED (" + members.size() + "/" + requiredTeamSize + " members)";
+            return " UNBALANCED (" + members.size() + "/" + requiredTeamSize + " members)";
         }
     }
 

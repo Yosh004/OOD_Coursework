@@ -17,10 +17,10 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
         // Work on a copy to avoid mutating the original list
         List<Participant> availableParticipants = new ArrayList<>(participants);
 
-        // This list will hold ALL teams to be returned (main teams + solo teams)
+        // hold ALL teams to be returned (main teams + solo teams)
         List<Team> allTeams = new ArrayList<>();
 
-        // This list will ONLY hold teams that should receive non-leader members
+        // ONLY hold teams that should receive non-leader members
         List<Team> teamsToFill = new ArrayList<>();
 
         // 1. Collect and sort leaders (single-threaded: NO parallel here)
@@ -40,12 +40,12 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
         // 2. Calculate required teams
         int requiredNumTeams = (int) Math.ceil((double) totalParticipants / teamSize);
 
-        // We can only form "valid" main teams up to the number of available leaders
+        // can only form "valid" main teams up to the number of available leaders
         int mainTeamsToForm = Math.min(requiredNumTeams, numLeaders);
 
         List<Participant> assignedLeaders = new ArrayList<>();
 
-        // 3. Create MAIN TEAMS (These will be filled later)
+        // 3. Create MAIN TEAMS
         for (int i = 0; i < mainTeamsToForm; i++) {
             Team team = new Team(i + 1);
             team.setRequiredTeamSize(teamSize);
@@ -58,7 +58,7 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
             teamsToFill.add(team); // Add to the list for distribution
         }
 
-        // 4. Create SOLO LEADER TEAMS (These will NOT be filled, ensuring they are UNBALANCED)
+        // 4. Create SOLO LEADER TEAMS for unbalance teams
         List<Participant> unassignedLeaders = new ArrayList<>(allLeaders);
         unassignedLeaders.removeAll(assignedLeaders);
 
@@ -67,7 +67,7 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
             soloTeam.setRequiredTeamSize(teamSize);
             soloTeam.addMember(leader);
             allTeams.add(soloTeam);
-            // Do NOT add to teamsToFill, so they stay solo
+            // they should stay solo
         }
 
         // 5. Phase 1: distribute non-leaders ONLY to teamsToFill
@@ -75,10 +75,6 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
 
         // 6. Phase 2: fill remaining spots ONLY in teamsToFill
         fillRemainingSpots(teamsToFill, availableParticipants, teamSize);
-
-        // Important: all participants in allTeams must be UNIQUE.
-        // Our logic ensures that: each participant is removed from 'availableParticipants'
-        // as soon as they are assigned.
 
         return allTeams;
     }
@@ -104,7 +100,7 @@ public class BalancedTeamStrategy implements TeamFormationStrategy {
         for (Team team : teams) {
             if (!team.hasSpace()) continue;
 
-            // SAFETY: if somehow a leader slips in, don't create double-leader teams
+            // somehow a leader added new avoid creating double-leader teams
             if (isLeader(participant)) {
                 boolean hasLeader = team.getMembers().stream().anyMatch(this::isLeader);
                 if (hasLeader) continue;

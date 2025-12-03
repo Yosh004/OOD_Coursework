@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class Main {
+    //making lists to store participants and team formed
     private static List<Participant> participants = new ArrayList<>();
     private static List<Team> teams = new ArrayList<>();
     private static FileService fileService = new FileService();
@@ -50,7 +51,7 @@ public class Main {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            executorService.shutdown();
+            executorService.shutdown(); //close thread pool
             scanner.close();
         }
     }
@@ -135,7 +136,7 @@ public class Main {
         int skillLevel = getValidatedSkillLevel();
         String role = selectRole();
 
-        // Personality Survey - NOW FIXED with final variables
+        // Personality Survey
         System.out.println("\n=== PERSONALITY SURVEY ===");
         System.out.println("Rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree)\n");
 
@@ -219,7 +220,7 @@ public class Main {
             System.out.println("Invalid skill level! Please enter a number between 1 and 10.");
         }
     }
-
+//team role selection
     private static String selectRole() {
         while (true) {
             System.out.println("----- Available roles -----");
@@ -292,7 +293,7 @@ public class Main {
             System.out.println("Error saving teams: " + e.getMessage());
         }
     }
-
+    // Helper method to read and validate numeric input
     private static int getIntInput(String prompt) {
         while (true) {
             try {

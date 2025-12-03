@@ -7,6 +7,7 @@ import java.util.*;
 
 public class RandomTeamStrategy implements TeamFormationStrategy {
 
+//random assignments no leader priority
     @Override
     public List<Team> formTeams(List<Participant> participants, int teamSize) {
         List<Team> teams = new ArrayList<>();

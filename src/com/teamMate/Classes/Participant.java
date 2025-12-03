@@ -1,5 +1,6 @@
 package com.teamMate.Classes;
 
+//fundamental data model of the application
 public class Participant {
     private String id;
     private String name;

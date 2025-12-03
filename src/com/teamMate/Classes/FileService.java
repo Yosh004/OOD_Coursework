@@ -4,7 +4,7 @@ import java.io.*;
 import java.util.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
+// I/O layer of the application
 public class FileService {
 
     public List<Participant> loadParticipantsFromCSV(String filename) {

@@ -2,7 +2,7 @@ package com.teamMate.Classes;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
+// Composite data structure and the aggregation container OOD
 public class Team {
     private int teamId;
     private List<Participant> members;

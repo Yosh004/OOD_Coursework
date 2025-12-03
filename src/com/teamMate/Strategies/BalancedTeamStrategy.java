@@ -5,7 +5,7 @@ import com.teamMate.Classes.Team;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
+// strickly one and only leader per group
 public class BalancedTeamStrategy implements TeamFormationStrategy {
 
     @Override

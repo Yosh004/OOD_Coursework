@@ -1,5 +1,5 @@
 package com.teamMate.Classes;
-
+//process raw data and determine the Personality type
 public class ClassificationService {
 
     public static String classifyPersonality(int totalScore) {

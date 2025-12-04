@@ -121,4 +121,35 @@ class BalancedTeamStrategyTest {
         Participant participant = new Participant(id, name, email, preferredGame, skillLevel, preferredRole, personalityScore, personalityType);
         return participant;
     }
+    @Test
+    void testNoDuplicateParticipants() {
+        // Prepare a medium dataset: 20 participants
+        for (int i = 1; i <= 20; i++) {
+            participants.add(createParticipant(
+                    "P" + i,
+                    "Name" + i,
+                    "mail" + i + "@test.com",
+                    "Game" + (i % 5),
+                    5,
+                    "Role" + (i % 5),
+                    80,
+                    (i % 4 == 0) ? "Leader" : "Balanced"
+            ));
+        }
+
+        List<Team> teams = strategy.formTeams(participants, 4);
+
+        // Collect all IDs
+        List<String> allIds = new ArrayList<>();
+        for (Team t : teams) {
+            for (Participant p : t.getMembers()) {
+                allIds.add(p.getId());
+            }
+        }
+
+        // Ensure uniqueness
+        long distinctCount = allIds.stream().distinct().count();
+        assertEquals(distinctCount, allIds.size(), "Duplicate participant detected!");
+    }
+
 }

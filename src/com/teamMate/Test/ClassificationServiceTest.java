@@ -54,4 +54,13 @@ class ClassificationServiceTest {
         assertTrue(service.isValidGame("FIFA"));
         assertFalse(service.isValidGame("   "));
     }
+    @Test
+    void testClassificationBoundaries() {
+        assertEquals("Leader", service.classifyPersonality(90));
+        assertEquals("Balanced", service.classifyPersonality(89));
+        assertEquals("Balanced", service.classifyPersonality(70));
+        assertEquals("Thinker", service.classifyPersonality(69));
+        assertEquals("Thinker", service.classifyPersonality(50));
+    }
+
 }
